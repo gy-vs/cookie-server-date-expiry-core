@@ -29,6 +29,10 @@ export {
 } from './cookieJar.js'
 export { defaultPath } from './defaultPath.js'
 export { domainMatch } from './domainMatch.js'
+export {
+  type CookieExpiryInfo,
+  type DroppedExpiryAttribute,
+} from './expiryInfo.js'
 export { formatDate } from './formatDate.js'
 export { parseDate } from './parseDate.js'
 export { permutePath } from './permutePath.js'

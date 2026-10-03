@@ -22,6 +22,7 @@ import {
 import { defaultPath } from './defaultPath.js'
 import { domainMatch } from './domainMatch.js'
 import { cookieCompare } from './cookieCompare.js'
+import { recordStoreClock } from './expiryInfo.js'
 import { version } from '../version.js'
 import { isPotentiallyTrustworthy } from './secureContext.js'
 
@@ -83,6 +84,17 @@ export interface SetCookieOptions {
    * Defaults to `Date.now()` if not provided.
    */
   now?: Date | undefined
+  /**
+   * If `true`, record how the cookie's expiry was determined — the raw
+   * `Expires`/`Max-Age` attributes, their parsed values, any invalid attributes
+   * that were dropped, and the clock readings used when storing (including any
+   * server-time correction supplied via {@link SetCookieOptions.now}). The
+   * recorded information can be retrieved with {@link Cookie.getExpiryInfo}.
+   *
+   * Defaults to `false`, in which case nothing is recorded and behavior and
+   * performance are exactly as before.
+   */
+  recordExpiryInfo?: boolean | undefined
 }
 
 const defaultGetCookieOptions: GetCookiesOptions = {
@@ -536,7 +548,10 @@ export class CookieJar {
 
     // S5.3 step 1
     if (typeof cookie === 'string' || cookie instanceof String) {
-      const parsedCookie = Cookie.parse(cookie.toString(), { loose: loose })
+      const parsedCookie = Cookie.parse(cookie.toString(), {
+        loose: loose,
+        recordExpiryInfo: options?.recordExpiryInfo,
+      })
       if (!parsedCookie) {
         const err = new Error('Cookie failed to parse')
         return options?.ignoreError
@@ -558,6 +573,10 @@ export class CookieJar {
 
     // S5.3 step 2
     const now = options?.now || new Date() // will assign later to save effort in the face of errors
+
+    // Record the clock readings used to store this cookie so that
+    // `cookie.getExpiryInfo()` can explain how its expiry was derived.
+    recordStoreClock(cookie, now, options?.recordExpiryInfo ?? false)
 
     // S5.3 step 3: NOOP; persistent-flag and expiry-time is handled by getCookie()
 

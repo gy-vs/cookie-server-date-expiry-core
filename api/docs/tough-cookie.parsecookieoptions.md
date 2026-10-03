@@ -54,5 +54,26 @@ _(Optional)_ If `true` then keyless cookies like `=abc` and `=` which are not RF
 
 
 </td></tr>
+<tr><td>
+
+[recordExpiryInfo?](./tough-cookie.parsecookieoptions.recordexpiryinfo.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean \| undefined
+
+
+</td><td>
+
+_(Optional)_ If `true` then how the cookie's expiry was determined (raw `Expires`<!-- -->/`Max-Age` attributes, their parsed values, and any invalid attributes that were dropped) is recorded and can later be retrieved with [Cookie.getExpiryInfo()](./tough-cookie.cookie.getexpiryinfo.md)<!-- -->.
+
+Defaults to `false`<!-- -->, in which case nothing is recorded and parsing behaves exactly as before.
+
+
+</td></tr>
 </tbody></table>
 

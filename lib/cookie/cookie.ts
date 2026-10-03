@@ -35,6 +35,13 @@ import { inOperator } from '../utils.js'
 import { formatDate } from './formatDate.js'
 import { parseDate } from './parseDate.js'
 import { canonicalDomain } from './canonicalDomain.js'
+import {
+  buildCookieExpiryInfo,
+  createExpiryInfoRecord,
+  getExpiryInfoRecord,
+  snapshotParsedExpiry,
+  type CookieExpiryInfo,
+} from './expiryInfo.js'
 import type { SerializedCookie } from './constants.js'
 
 // From RFC6265 S4.1.1
@@ -114,6 +121,15 @@ export interface ParseCookieOptions {
    * If `true` then keyless cookies like `=abc` and `=` which are not RFC-compliant will be parsed.
    */
   loose?: boolean | undefined
+  /**
+   * If `true` then how the cookie's expiry was determined (raw `Expires`/`Max-Age`
+   * attributes, their parsed values, and any invalid attributes that were dropped)
+   * is recorded and can later be retrieved with {@link Cookie.getExpiryInfo}.
+   *
+   * Defaults to `false`, in which case nothing is recorded and parsing behaves
+   * exactly as before.
+   */
+  recordExpiryInfo?: boolean | undefined
 }
 
 function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
@@ -131,8 +147,20 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
     return undefined
   }
 
+  // When requested, record how the expiry attributes are handled so that
+  // `getExpiryInfo()` can explain the resulting expiry later.
+  const expiryRecord = options?.recordExpiryInfo
+    ? createExpiryInfoRecord(c)
+    : undefined
+  const finishParse = (cookie: Cookie): Cookie => {
+    if (expiryRecord) {
+      snapshotParsedExpiry(cookie, expiryRecord)
+    }
+    return cookie
+  }
+
   if (firstSemi === -1) {
-    return c
+    return finishParse(c)
   }
 
   // S5.2.3 "unparsed-attributes consist of the remainder of the set-cookie-string
@@ -143,7 +171,7 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
   // "If the unparsed-attributes string is empty, skip the rest of these
   // steps."
   if (unparsed.length === 0) {
-    return c
+    return finishParse(c)
   }
 
   /*
@@ -155,8 +183,8 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
    * the previous value.
    */
   const cookie_avs = unparsed.split(';')
-  while (cookie_avs.length) {
-    const av = (cookie_avs.shift() ?? '').trim()
+  for (const cookie_av of cookie_avs) {
+    const av = cookie_av.trim()
     if (av.length === 0) {
       // happens if ";;" appears
       continue
@@ -188,7 +216,22 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
             // over and underflow not realistically a concern: V8's getTime() seems to
             // store something larger than a 32-bit time_t (even with 32-bit node)
             c.expires = exp
+            if (expiryRecord) {
+              expiryRecord.rawExpires = av_value
+            }
+          } else if (expiryRecord) {
+            expiryRecord.droppedAttributes.push({
+              name: 'expires',
+              value: av_value,
+              reason: 'invalid-date',
+            })
           }
+        } else if (expiryRecord) {
+          expiryRecord.droppedAttributes.push({
+            name: 'expires',
+            value: av_value,
+            reason: 'empty-value',
+          })
         }
         break
 
@@ -202,7 +245,22 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
             // "If delta-seconds is less than or equal to zero (0), let expiry-time
             // be the earliest representable date and time."
             c.setMaxAge(delta)
+            if (expiryRecord) {
+              expiryRecord.rawMaxAge = av_value
+            }
+          } else if (expiryRecord) {
+            expiryRecord.droppedAttributes.push({
+              name: 'max-age',
+              value: av_value,
+              reason: 'invalid-integer',
+            })
           }
+        } else if (expiryRecord) {
+          expiryRecord.droppedAttributes.push({
+            name: 'max-age',
+            value: av_value,
+            reason: 'empty-value',
+          })
         }
         break
 
@@ -271,7 +329,7 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
     }
   }
 
-  return c
+  return finishParse(c)
 }
 
 function fromJSON(str: unknown): Cookie | undefined {
@@ -882,6 +940,30 @@ export class Cookie {
     } else {
       return millisec == undefined ? undefined : new Date(millisec)
     }
+  }
+
+  /**
+   * Explains how this cookie's expiry was determined, for debugging purposes.
+   *
+   * @remarks
+   * - Recording must have been requested when the cookie was parsed or stored
+   *   (via `recordExpiryInfo` on {@link ParseCookieOptions} or
+   *   {@link SetCookieOptions}); otherwise `undefined` is returned.
+   *
+   * - The returned object is a plain, JSON-serializable snapshot with all
+   *   timestamps as ISO-8601 UTC strings, so it is safe to log and is
+   *   independent of the local machine's timezone.
+   *
+   * - The diagnostics never affect the cookie itself: {@link Cookie.cookieString},
+   *   {@link Cookie.toString}, and {@link Cookie.toJSON} are unchanged, and the
+   *   information is not serialized (it does not survive {@link Cookie.clone}
+   *   or a `toJSON`/`fromJSON` round-trip).
+   *
+   * @public
+   */
+  getExpiryInfo(): CookieExpiryInfo | undefined {
+    const record = getExpiryInfoRecord(this)
+    return record ? buildCookieExpiryInfo(record) : undefined
   }
 
   /**

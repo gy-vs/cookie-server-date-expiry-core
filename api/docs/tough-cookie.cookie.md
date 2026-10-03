@@ -507,6 +507,20 @@ Does the reverse of [Cookie.toJSON()](./tough-cookie.cookie.tojson.md)<!-- -->.
 </td></tr>
 <tr><td>
 
+[getExpiryInfo()](./tough-cookie.cookie.getexpiryinfo.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Explains how this cookie's expiry was determined, for debugging purposes.
+
+
+</td></tr>
+<tr><td>
+
 [isPersistent()](./tough-cookie.cookie.ispersistent.md)
 
 

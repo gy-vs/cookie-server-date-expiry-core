@@ -30,6 +30,7 @@ export class Cookie {
     expiryTime(now?: Date): number | undefined;
     extensions: string[] | null;
     static fromJSON(str: unknown): Cookie | undefined;
+    getExpiryInfo(): CookieExpiryInfo | undefined;
     hostOnly: boolean | null;
     httpOnly: boolean;
     isPersistent(): boolean;
@@ -65,6 +66,21 @@ export class Cookie {
 
 // @public
 export function cookieCompare(a: Cookie, b: Cookie): number;
+
+// @public
+export interface CookieExpiryInfo {
+    clockSkewMs: number | null;
+    decidedBy: 'max-age' | 'expires' | 'session';
+    droppedAttributes: DroppedExpiryAttribute[];
+    expiresAt: string | null;
+    localClockAt: string | null;
+    parsedAt: string;
+    parsedExpires: string | null;
+    parsedMaxAge: number | 'Infinity' | '-Infinity' | null;
+    rawExpires: string | null;
+    rawMaxAge: string | null;
+    storedAt: string | null;
+}
 
 // @public
 export class CookieJar {
@@ -156,6 +172,13 @@ export function defaultPath(path?: Nullable<string>): string;
 export function domainMatch(domain?: Nullable<string>, cookieDomain?: Nullable<string>, canonicalize?: boolean): boolean | undefined;
 
 // @public
+export interface DroppedExpiryAttribute {
+    name: 'expires' | 'max-age';
+    reason: 'empty-value' | 'invalid-date' | 'invalid-integer';
+    value: string | null;
+}
+
+// @public
 export interface ErrorCallback {
     // (undocumented)
     (error: Error | null): void;
@@ -231,6 +254,7 @@ export function parse(str: string, options?: ParseCookieOptions): Cookie | undef
 // @public
 export interface ParseCookieOptions {
     loose?: boolean | undefined;
+    recordExpiryInfo?: boolean | undefined;
 }
 
 // @public
@@ -274,6 +298,7 @@ export interface SetCookieOptions {
     ignoreError?: boolean | undefined;
     loose?: boolean | undefined;
     now?: Date | undefined;
+    recordExpiryInfo?: boolean | undefined;
     sameSiteContext?: 'strict' | 'lax' | 'none' | undefined;
 }
 

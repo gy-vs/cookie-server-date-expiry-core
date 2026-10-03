@@ -121,6 +121,27 @@ Defaults to `Date.now()` if not provided.
 </td></tr>
 <tr><td>
 
+[recordExpiryInfo?](./tough-cookie.setcookieoptions.recordexpiryinfo.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean \| undefined
+
+
+</td><td>
+
+_(Optional)_ If `true`<!-- -->, record how the cookie's expiry was determined — the raw `Expires`<!-- -->/`Max-Age` attributes, their parsed values, any invalid attributes that were dropped, and the clock readings used when storing (including any server-time correction supplied via [SetCookieOptions.now](./tough-cookie.setcookieoptions.now.md)<!-- -->). The recorded information can be retrieved with [Cookie.getExpiryInfo()](./tough-cookie.cookie.getexpiryinfo.md)<!-- -->.
+
+Defaults to `false`<!-- -->, in which case nothing is recorded and behavior and performance are exactly as before.
+
+
+</td></tr>
+<tr><td>
+
 [sameSiteContext?](./tough-cookie.setcookieoptions.samesitecontext.md)
 
 

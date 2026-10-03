@@ -259,6 +259,17 @@ A callback function that accepts an error or a result.
 </td></tr>
 <tr><td>
 
+[CookieExpiryInfo](./tough-cookie.cookieexpiryinfo.md)
+
+
+</td><td>
+
+Diagnostics explaining how the expiry of a [Cookie](./tough-cookie.cookie.md) was determined.
+
+
+</td></tr>
+<tr><td>
+
 [CreateCookieJarOptions](./tough-cookie.createcookiejaroptions.md)
 
 
@@ -276,6 +287,17 @@ Configuration settings to be used with a [CookieJar](./tough-cookie.cookiejar.md
 </td><td>
 
 Configurable values that can be set when creating a [Cookie](./tough-cookie.cookie.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[DroppedExpiryAttribute](./tough-cookie.droppedexpiryattribute.md)
+
+
+</td><td>
+
+An `Expires` or `Max-Age` attribute that was ignored while parsing a `Set-Cookie` string because its value was not valid.
 
 
 </td></tr>
