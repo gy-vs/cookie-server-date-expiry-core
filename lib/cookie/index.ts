@@ -32,6 +32,16 @@ export { domainMatch } from './domainMatch.js'
 export { formatDate } from './formatDate.js'
 export { parseDate } from './parseDate.js'
 export { permutePath } from './permutePath.js'
+export {
+  EXPIRY_DEBUG_JSON_KEY,
+  isExpiryDebugInfo,
+  type ExpiryDebugInfo,
+  type ExpiryDebugInstant,
+  type ExpiresDebugOccurrence,
+  type MaxAgeDebugOccurrence,
+  type DroppedExpiryAttribute,
+  type ExpirySource,
+} from './expiryDebug.js'
 
 import { Cookie, ParseCookieOptions } from './cookie.js'
 

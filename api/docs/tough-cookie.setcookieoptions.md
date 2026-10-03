@@ -37,6 +37,25 @@ Description
 </th></tr></thead>
 <tbody><tr><td>
 
+[expiryDebug?](./tough-cookie.setcookieoptions.expirydebug.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean \| undefined
+
+
+</td><td>
+
+_(Optional)_ If `true`<!-- -->, diagnostic information describing how the cookie's expiry was derived is attached to the stored [Cookie](./tough-cookie.cookie.md) and readable via [Cookie.getExpiryDebugInfo()](./tough-cookie.cookie.getexpirydebuginfo.md)<!-- -->. Defaults to `false`<!-- -->; when omitted, no diagnostic work is performed and no existing behavior changes.
+
+
+</td></tr>
+<tr><td>
+
 [http?](./tough-cookie.setcookieoptions.http.md)
 
 
@@ -145,6 +164,25 @@ _(Optional)_ Set this to 'none', 'lax', or 'strict' to enforce SameSite cookies 
 - `undefined` - SameSite is not enforced! This can be a valid use-case for when CSRF isn't in the threat model of the system being built.
 
 Defaults to `undefined` if not provided.
+
+
+</td></tr>
+<tr><td>
+
+[serverDate?](./tough-cookie.setcookieoptions.serverdate.md)
+
+
+</td><td>
+
+
+</td><td>
+
+string \| Date \| undefined
+
+
+</td><td>
+
+_(Optional)_ The value of the HTTP `Date` response header that carried this `Set-Cookie` (either a date string or a `Date`<!-- -->). It is used for diagnostic information only: the resulting debug object reports the clock skew between the server and the local clock and what the expiry would be if the server's clock were trusted. It never changes the expiry that tough-cookie enforces. Only meaningful together with `expiryDebug: true`<!-- -->.
 
 
 </td></tr>

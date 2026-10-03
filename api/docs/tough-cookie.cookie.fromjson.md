@@ -9,7 +9,7 @@ Does the reverse of [Cookie.toJSON()](./tough-cookie.cookie.tojson.md)<!-- -->.
 **Signature:**
 
 ```typescript
-static fromJSON(str: unknown): Cookie | undefined;
+static fromJSON(str: unknown, expiryDebug?: ExpiryDebugInfo): Cookie | undefined;
 ```
 
 ## Parameters
@@ -43,6 +43,22 @@ unknown
 </td><td>
 
 An unparsed JSON string or a value that has already been parsed as JSON
+
+
+</td></tr>
+<tr><td>
+
+expiryDebug
+
+
+</td><td>
+
+[ExpiryDebugInfo](./tough-cookie.expirydebuginfo.md)
+
+
+</td><td>
+
+_(Optional)_ Optional expiry diagnostic information to reattach to the restored cookie. It is also reattached automatically when present under the `expiryDebug` key of the serialized object.
 
 
 </td></tr>

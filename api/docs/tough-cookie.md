@@ -178,6 +178,17 @@ Returns the public suffix of this hostname. The public suffix is the shortest do
 </td></tr>
 <tr><td>
 
+[isExpiryDebugInfo(value)](./tough-cookie.isexpirydebuginfo.md)
+
+
+</td><td>
+
+Structural validation for an [ExpiryDebugInfo](./tough-cookie.expirydebuginfo.md) coming from an untrusted source such as deserialized JSON.
+
+
+</td></tr>
+<tr><td>
+
 [parse(str, options)](./tough-cookie.parse.md)
 
 
@@ -292,6 +303,39 @@ A callback function that only accepts an error.
 </td></tr>
 <tr><td>
 
+[ExpiresDebugOccurrence](./tough-cookie.expiresdebugoccurrence.md)
+
+
+</td><td>
+
+One occurrence of an `Expires` attribute in the original `Set-Cookie` string. The RFC says the last such attribute wins, so a cookie may carry several occurrences.
+
+
+</td></tr>
+<tr><td>
+
+[ExpiryDebugInfo](./tough-cookie.expirydebuginfo.md)
+
+
+</td><td>
+
+Human-readable, JSON-serializable diagnostic information describing how a cookie's expiry was derived.
+
+
+</td></tr>
+<tr><td>
+
+[ExpiryDebugInstant](./tough-cookie.expirydebuginstant.md)
+
+
+</td><td>
+
+An absolute instant rendered in two equivalent, JSON-friendly forms. Both forms are absolute (UTC) and therefore identical on machines in any timezone, which makes them safe to compare across hosts or put in logs.
+
+
+</td></tr>
+<tr><td>
+
 [GetCookiesOptions](./tough-cookie.getcookiesoptions.md)
 
 
@@ -309,6 +353,17 @@ Configuration options used when calling `CookieJar.getCookies(...)`<!-- -->.
 </td><td>
 
 Options for configuring how [getPublicSuffix()](./tough-cookie.getpublicsuffix.md) behaves.
+
+
+</td></tr>
+<tr><td>
+
+[MaxAgeDebugOccurrence](./tough-cookie.maxagedebugoccurrence.md)
+
+
+</td><td>
+
+One occurrence of a `Max-Age` attribute in the original `Set-Cookie` string. The RFC says the last such attribute wins, so a cookie may carry several occurrences.
 
 
 </td></tr>
@@ -362,6 +417,17 @@ Description
 </th></tr></thead>
 <tbody><tr><td>
 
+[EXPIRY\_DEBUG\_JSON\_KEY](./tough-cookie.expiry_debug_json_key.md)
+
+
+</td><td>
+
+Well-known JSON key under which [ExpiryDebugInfo](./tough-cookie.expirydebuginfo.md) may be embedded when persisting cookies through a custom store, enabling [Cookie.fromJSON()](./tough-cookie.cookie.fromjson.md) to reattach it automatically.
+
+
+</td></tr>
+<tr><td>
+
 [PrefixSecurityEnum](./tough-cookie.prefixsecurityenum.md)
 
 
@@ -406,6 +472,28 @@ Description
 
 </th></tr></thead>
 <tbody><tr><td>
+
+[DroppedExpiryAttribute](./tough-cookie.droppedexpiryattribute.md)
+
+
+</td><td>
+
+An expiry-related attribute that appeared in the `Set-Cookie` string but was ignored because it was invalid.
+
+
+</td></tr>
+<tr><td>
+
+[ExpirySource](./tough-cookie.expirysource.md)
+
+
+</td><td>
+
+Which attribute ultimately determined the expiry of the cookie.
+
+
+</td></tr>
+<tr><td>
 
 [Nullable](./tough-cookie.nullable.md)
 

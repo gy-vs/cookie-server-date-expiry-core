@@ -36,6 +36,18 @@ import { formatDate } from './formatDate.js'
 import { parseDate } from './parseDate.js'
 import { canonicalDomain } from './canonicalDomain.js'
 import type { SerializedCookie } from './constants.js'
+import {
+  attachExpiryDebugInfo,
+  attachParseDebugState,
+  createExpiryDebugState,
+  EXPIRY_DEBUG_JSON_KEY,
+  finalizeExpiryDebug,
+  getExpiryDebugInfo,
+  isExpiryDebugInfo,
+  recordExpiresOccurrence,
+  recordMaxAgeOccurrence,
+} from './expiryDebug.js'
+import type { ExpiryDebugInfo } from './expiryDebug.js'
 
 // From RFC6265 S4.1.1
 // note that it excludes \x3B ";"
@@ -114,6 +126,22 @@ export interface ParseCookieOptions {
    * If `true` then keyless cookies like `=abc` and `=` which are not RFC-compliant will be parsed.
    */
   loose?: boolean | undefined
+  /**
+   * If `true`, diagnostic information describing how the cookie's expiry was
+   * derived is collected and attached to the returned {@link Cookie}. It can
+   * be read with {@link Cookie.getExpiryDebugInfo} and serialized to plain
+   * JSON for logging.
+   *
+   * @remarks
+   * - This only affects how the cookie is inspected; it does not change the
+   *     parsed cookie, its expiry, or any header it is rendered into.
+   *
+   * - When parsing standalone (not through `CookieJar.setCookie`), the
+   *     information is finalized against the local clock at parse time.
+   *
+   * Defaults to `false`; when omitted, no diagnostic work is performed.
+   */
+  expiryDebug?: boolean | undefined
 }
 
 function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
@@ -155,6 +183,8 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
    * the previous value.
    */
   const cookie_avs = unparsed.split(';')
+  const expiryDebug = options?.expiryDebug === true
+  const debugState = expiryDebug ? createExpiryDebugState() : null
   while (cookie_avs.length) {
     const av = (cookie_avs.shift() ?? '').trim()
     if (av.length === 0) {
@@ -179,7 +209,11 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
     }
 
     switch (av_key) {
-      case 'expires': // S5.2.1
+      case 'expires': {
+        // S5.2.1
+        if (debugState) {
+          recordExpiresOccurrence(debugState, av_value)
+        }
         if (av_value) {
           const exp = parseDate(av_value)
           // "If the attribute-value failed to parse as a cookie date, ignore the
@@ -191,20 +225,27 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
           }
         }
         break
+      }
 
-      case 'max-age': // S5.2.2
+      case 'max-age': {
+        // S5.2.2
+        let maxAgeDelta: number | null = null
+        if (debugState) {
+          maxAgeDelta = recordMaxAgeOccurrence(debugState, av_value)
+        }
         if (av_value) {
           // "If the first character of the attribute-value is not a DIGIT or a "-"
           // character ...[or]... If the remainder of attribute-value contains a
           // non-DIGIT character, ignore the cookie-av."
-          if (/^-?[0-9]+$/.test(av_value)) {
-            const delta = parseInt(av_value, 10)
+          if (debugState ? maxAgeDelta != null : /^-?[0-9]+$/.test(av_value)) {
+            const delta = maxAgeDelta ?? parseInt(av_value, 10)
             // "If delta-seconds is less than or equal to zero (0), let expiry-time
             // be the earliest representable date and time."
             c.setMaxAge(delta)
           }
         }
         break
+      }
 
       case 'domain': // S5.2.3
         // "If the attribute-value is empty, the behavior is undefined.  However,
@@ -271,10 +312,18 @@ function parse(str: string, options?: ParseCookieOptions): Cookie | undefined {
     }
   }
 
+  if (debugState) {
+    attachParseDebugState(c, debugState)
+    finalizeExpiryDebug(c, { now: new Date() })
+  }
+
   return c
 }
 
-function fromJSON(str: unknown): Cookie | undefined {
+function fromJSON(
+  str: unknown,
+  expiryDebug?: ExpiryDebugInfo,
+): Cookie | undefined {
   if (!str || validators.isEmptyString(str)) {
     return undefined
   }
@@ -362,6 +411,18 @@ function fromJSON(str: unknown): Cookie | undefined {
       }
     }
   })
+
+  // Reattach expiry diagnostic information when it was provided explicitly or
+  // embedded under the well-known JSON key; it is intentionally excluded from
+  // serializableProperties and so never affects Cookie.toJSON().
+  const embeddedDebug =
+    obj && typeof obj === 'object' && inOperator(EXPIRY_DEBUG_JSON_KEY, obj)
+      ? obj[EXPIRY_DEBUG_JSON_KEY]
+      : undefined
+  const debugToAttach = expiryDebug ?? embeddedDebug
+  if (isExpiryDebugInfo(debugToAttach)) {
+    attachExpiryDebugInfo(c, debugToAttach)
+  }
 
   return c
 }
@@ -639,10 +700,20 @@ export class Cookie {
 
   /**
    * Does a deep clone of this cookie, implemented exactly as `Cookie.fromJSON(cookie.toJSON())`.
+   *
+   * @remarks
+   * Expiry diagnostic information (see {@link Cookie.getExpiryDebugInfo}) is
+   * not part of {@link Cookie.toJSON}, but it is preserved on the clone.
+   *
    * @public
    */
   clone(): Cookie | undefined {
-    return fromJSON(this.toJSON())
+    const cloned = fromJSON(this.toJSON())
+    const debug = getExpiryDebugInfo(this)
+    if (cloned && debug) {
+      attachExpiryDebugInfo(cloned, debug)
+    }
+    return cloned
   }
 
   /**
@@ -885,6 +956,30 @@ export class Cookie {
   }
 
   /**
+   * Returns human-readable diagnostic information about how this cookie's
+   * expiry was derived (raw `Expires`/`Max-Age` attributes, their parsed
+   * values, response-`Date`-based clock skew, the attribute that ultimately
+   * won, and any invalid attributes that were dropped), or `undefined` when
+   * expiry diagnostics were not requested when the cookie was parsed or
+   * stored.
+   *
+   * @remarks
+   * - The returned object is plain JSON-serializable data; all times are
+   *     absolute (epoch milliseconds plus a UTC ISO string), so it is
+   *     timezone-independent and safe to log.
+   *
+   * - The information is descriptive only. It is never included in cookie
+   *     headers, {@link Cookie.toString}, or {@link Cookie.toJSON}, and it
+   *     does not affect storage or matching.
+   *
+   * Enable it via the `expiryDebug` option of {@link Cookie.parse} or
+   * `CookieJar.setCookie`.
+   */
+  getExpiryDebugInfo(): ExpiryDebugInfo | undefined {
+    return getExpiryDebugInfo(this)
+  }
+
+  /**
    * Indicates if the cookie has been persisted to a store or not.
    * @public
    */
@@ -970,9 +1065,15 @@ export class Cookie {
    * ```
    *
    * @param str - An unparsed JSON string or a value that has already been parsed as JSON
+   * @param expiryDebug - Optional expiry diagnostic information to reattach to
+   *   the restored cookie. It is also reattached automatically when present
+   *   under the `expiryDebug` key of the serialized object.
    */
-  static fromJSON(str: unknown): Cookie | undefined {
-    return fromJSON(str)
+  static fromJSON(
+    str: unknown,
+    expiryDebug?: ExpiryDebugInfo,
+  ): Cookie | undefined {
+    return fromJSON(str, expiryDebug)
   }
 
   private static cookiesCreated = 0

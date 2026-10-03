@@ -5,6 +5,7 @@ import { Store } from '../store.js'
 import { MemoryCookieStore } from '../memstore.js'
 import { pathMatch } from '../pathMatch.js'
 import { Cookie } from './cookie.js'
+import { finalizeExpiryDebug } from './expiryDebug.js'
 import {
   Callback,
   createPromiseCallback,
@@ -83,6 +84,22 @@ export interface SetCookieOptions {
    * Defaults to `Date.now()` if not provided.
    */
   now?: Date | undefined
+  /**
+   * If `true`, diagnostic information describing how the cookie's expiry was
+   * derived is attached to the stored {@link Cookie} and readable via
+   * {@link Cookie.getExpiryDebugInfo}. Defaults to `false`; when omitted, no
+   * diagnostic work is performed and no existing behavior changes.
+   */
+  expiryDebug?: boolean | undefined
+  /**
+   * The value of the HTTP `Date` response header that carried this
+   * `Set-Cookie` (either a date string or a `Date`). It is used for
+   * diagnostic information only: the resulting debug object reports the clock
+   * skew between the server and the local clock and what the expiry would be
+   * if the server's clock were trusted. It never changes the expiry that
+   * tough-cookie enforces. Only meaningful together with `expiryDebug: true`.
+   */
+  serverDate?: string | Date | undefined
 }
 
 const defaultGetCookieOptions: GetCookiesOptions = {
@@ -536,7 +553,10 @@ export class CookieJar {
 
     // S5.3 step 1
     if (typeof cookie === 'string' || cookie instanceof String) {
-      const parsedCookie = Cookie.parse(cookie.toString(), { loose: loose })
+      const parsedCookie = Cookie.parse(cookie.toString(), {
+        loose: loose,
+        expiryDebug: options?.expiryDebug === true,
+      })
       if (!parsedCookie) {
         const err = new Error('Cookie failed to parse')
         return options?.ignoreError
@@ -558,6 +578,14 @@ export class CookieJar {
 
     // S5.3 step 2
     const now = options?.now || new Date() // will assign later to save effort in the face of errors
+
+    // When expiry diagnostics are requested, finalize the information with the
+    // request context (now and the response Date) before the cookie could be
+    // rejected or stored. Purely descriptive: it never mutates the cookie's
+    // expiry or any other behavior.
+    if (options?.expiryDebug === true && cookie instanceof Cookie) {
+      finalizeExpiryDebug(cookie, { now, serverDate: options.serverDate })
+    }
 
     // S5.3 step 3: NOOP; persistent-flag and expiry-time is handled by getCookie()
 

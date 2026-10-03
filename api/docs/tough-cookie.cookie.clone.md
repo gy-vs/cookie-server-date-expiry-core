@@ -15,3 +15,7 @@ clone(): Cookie | undefined;
 
 [Cookie](./tough-cookie.cookie.md) \| undefined
 
+## Remarks
+
+Expiry diagnostic information (see [Cookie.getExpiryDebugInfo()](./tough-cookie.cookie.getexpirydebuginfo.md)<!-- -->) is not part of [Cookie.toJSON()](./tough-cookie.cookie.tojson.md)<!-- -->, but it is preserved on the clone.
+

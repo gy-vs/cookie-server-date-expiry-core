@@ -37,6 +37,25 @@ Description
 </th></tr></thead>
 <tbody><tr><td>
 
+[expiryDebug?](./tough-cookie.parsecookieoptions.expirydebug.md)
+
+
+</td><td>
+
+
+</td><td>
+
+boolean \| undefined
+
+
+</td><td>
+
+_(Optional)_ If `true`<!-- -->, diagnostic information describing how the cookie's expiry was derived is collected and attached to the returned [Cookie](./tough-cookie.cookie.md)<!-- -->. It can be read with [Cookie.getExpiryDebugInfo()](./tough-cookie.cookie.getexpirydebuginfo.md) and serialized to plain JSON for logging.
+
+
+</td></tr>
+<tr><td>
+
 [loose?](./tough-cookie.parsecookieoptions.loose.md)
 
 

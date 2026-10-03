@@ -29,7 +29,8 @@ export class Cookie {
     expiryDate(now?: Date): Date | undefined;
     expiryTime(now?: Date): number | undefined;
     extensions: string[] | null;
-    static fromJSON(str: unknown): Cookie | undefined;
+    static fromJSON(str: unknown, expiryDebug?: ExpiryDebugInfo): Cookie | undefined;
+    getExpiryDebugInfo(): ExpiryDebugInfo | undefined;
     hostOnly: boolean | null;
     httpOnly: boolean;
     isPersistent(): boolean;
@@ -156,10 +157,58 @@ export function defaultPath(path?: Nullable<string>): string;
 export function domainMatch(domain?: Nullable<string>, cookieDomain?: Nullable<string>, canonicalize?: boolean): boolean | undefined;
 
 // @public
+export type DroppedExpiryAttribute = {
+    attribute: 'expires';
+    raw: string | null;
+    reason: 'empty' | 'invalid-date';
+} | {
+    attribute: 'max-age';
+    raw: string | null;
+    reason: 'empty' | 'invalid-integer';
+};
+
+// @public
 export interface ErrorCallback {
     // (undocumented)
     (error: Error | null): void;
 }
+
+// @public
+export interface ExpiresDebugOccurrence {
+    parsed: ExpiryDebugInstant | null;
+    raw: string | null;
+}
+
+// @public
+export const EXPIRY_DEBUG_JSON_KEY: "expiryDebug";
+
+// @public
+export interface ExpiryDebugInfo {
+    clockSkewMs: number | null;
+    correctedExpiry: ExpiryDebugInstant | null;
+    correctedExpiryImmediate: boolean | null;
+    correctedExpiryInfinite: boolean | null;
+    dropped: DroppedExpiryAttribute[];
+    expiresOccurrences: ExpiresDebugOccurrence[];
+    expiry: ExpiryDebugInstant | null;
+    expiryImmediate: boolean;
+    expiryInfinite: boolean;
+    localNow: ExpiryDebugInstant;
+    maxAgeOccurrences: MaxAgeDebugOccurrence[];
+    serverDate: ExpiryDebugInstant | null;
+    serverDateRaw: string | null;
+    source: ExpirySource;
+    version: 1;
+}
+
+// @public
+export interface ExpiryDebugInstant {
+    epochMs: number;
+    iso: string;
+}
+
+// @public
+export type ExpirySource = 'max-age' | 'expires' | 'session';
 
 // @public
 export function formatDate(date: Date): string;
@@ -183,6 +232,15 @@ export function getPublicSuffix(domain: string, options?: GetPublicSuffixOptions
 export interface GetPublicSuffixOptions {
     allowSpecialUseDomain?: boolean | undefined;
     ignoreError?: boolean | undefined;
+}
+
+// @public
+export function isExpiryDebugInfo(value: unknown): value is ExpiryDebugInfo;
+
+// @public
+export interface MaxAgeDebugOccurrence {
+    deltaSeconds: number | null;
+    raw: string | null;
 }
 
 // @public
@@ -230,6 +288,7 @@ export function parse(str: string, options?: ParseCookieOptions): Cookie | undef
 
 // @public
 export interface ParseCookieOptions {
+    expiryDebug?: boolean | undefined;
     loose?: boolean | undefined;
 }
 
@@ -270,11 +329,13 @@ export interface SerializedCookieJar {
 
 // @public
 export interface SetCookieOptions {
+    expiryDebug?: boolean | undefined;
     http?: boolean | undefined;
     ignoreError?: boolean | undefined;
     loose?: boolean | undefined;
     now?: Date | undefined;
     sameSiteContext?: 'strict' | 'lax' | 'none' | undefined;
+    serverDate?: string | Date | undefined;
 }
 
 // @public

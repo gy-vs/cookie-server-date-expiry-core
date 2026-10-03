@@ -491,7 +491,7 @@ If Expires ([Cookie.expires](./tough-cookie.cookie.expires.md)<!-- -->) is set, 
 </td></tr>
 <tr><td>
 
-[fromJSON(str)](./tough-cookie.cookie.fromjson.md)
+[fromJSON(str, expiryDebug)](./tough-cookie.cookie.fromjson.md)
 
 
 </td><td>
@@ -502,6 +502,20 @@ If Expires ([Cookie.expires](./tough-cookie.cookie.expires.md)<!-- -->) is set, 
 </td><td>
 
 Does the reverse of [Cookie.toJSON()](./tough-cookie.cookie.tojson.md)<!-- -->.
+
+
+</td></tr>
+<tr><td>
+
+[getExpiryDebugInfo()](./tough-cookie.cookie.getexpirydebuginfo.md)
+
+
+</td><td>
+
+
+</td><td>
+
+Returns human-readable diagnostic information about how this cookie's expiry was derived (raw `Expires`<!-- -->/`Max-Age` attributes, their parsed values, response-`Date`<!-- -->-based clock skew, the attribute that ultimately won, and any invalid attributes that were dropped), or `undefined` when expiry diagnostics were not requested when the cookie was parsed or stored.
 
 
 </td></tr>
